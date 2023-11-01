@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use githelp::git::run_git_diff;
+use git2::{DiffFormat, DiffOptions, Repository};
 
 #[derive(Parser)]
 struct Cli {
@@ -10,27 +10,29 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     // diff
-    Diff {}
+    Diff {},
 }
 
 fn main() {
     let args = Cli::parse();
     match args.command {
         Commands::Diff {} => {
-            match run_git_diff() {
-                Ok(output) => {
-                if output.status.success() {
-                    let diff_output = String::from_utf8_lossy(&output.stdout);
-                    println!("Git diff output:\n{}", diff_output);
-                } else {
-                    eprintln!("Git diff command failed with an error: {:?}", output.status);
-                    eprintln!("Error message: {:?}", String::from_utf8_lossy(&output.stderr));
-                }
+            let repo_path = ".";
+            let repo = Repository::open(repo_path).expect("Failed to open repository");
+
+            let mut revwalk = repo.revwalk().expect("Failed to initialize revwalk");
+            revwalk.push_head().expect("Failed to push head");
+
+            for oid in revwalk {
+                let oid = oid.expect("Failed to get OID");
+                let commit = repo.find_commit(oid).expect("Failed to find commit");
+
+                println!(
+                    "Commit: {} - {}",
+                    oid,
+                    commit.message().expect("unable to get message"),
+                );
             }
-            Err(err) => {
-                eprintln!("Failed to run git diff: {:?}", err);
-            }
-            }
-         },
+        }
     };
 }
