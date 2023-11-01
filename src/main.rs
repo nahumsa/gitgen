@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use git2::{DiffFormat, DiffOptions, Repository};
+use git2::Repository;
 
 #[derive(Parser)]
 struct Cli {
